@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Virtual Chemistry Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECF2F0; --panel:#FBFDFC; --ink:#10262E; --muted:#4B6168; --line:#C6D6D3;
+  --accent:#0B6E78; --on-accent:#FFFFFF; --soft:#DCEAE7; --good:#17704A; --bad:#B3361B;
+  --glass:#F1F8FA; --glass-line:#6F98A3; --liquid:#B7DCE6; --metal:#8FA3A9;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B181D; --panel:#12252B; --ink:#E3EEED; --muted:#96ACB0; --line:#24424A;
+    --accent:#56C3CC; --on-accent:#06262A; --soft:#17303A; --good:#56C98F; --bad:#F08A6E;
+    --glass:#16323A; --glass-line:#5F8F9B; --liquid:#2A5866; --metal:#55707A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B181D; --panel:#12252B; --ink:#E3EEED; --muted:#96ACB0; --line:#24424A;
+  --accent:#56C3CC; --on-accent:#06262A; --soft:#17303A; --good:#56C98F; --bad:#F08A6E;
+  --glass:#16323A; --glass-line:#5F8F9B; --liquid:#2A5866; --metal:#55707A;
+}
+:root{ box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+*,*::before,*::after{ box-sizing:inherit; }
+[hidden]{ display:none !important; }
+body{ margin:0; background:var(--bg); color:var(--ink); font-family:Figtree,system-ui,-apple-system,"Segoe UI",sans-serif; font-size:16px; line-height:1.5; }
+.wrap{ max-width:1120px; margin:0 auto; padding:0 18px 44px; }
+h1,h2,h3{ font-family:"Bricolage Grotesque",system-ui,sans-serif; letter-spacing:-.015em; margin:0; }
+h1{ font-weight:700; font-size:clamp(2rem,1.2rem + 3vw,3.1rem); line-height:1.05; margin-bottom:10px; }
+h2{ font-weight:650; font-size:1.3rem; margin-bottom:6px; }
+h3{ font-weight:600; font-size:1.05rem; margin-bottom:4px; }
+.lede{ max-width:58ch; color:var(--muted); font-size:1.05rem; margin:0; }
+
+/* Top bar */
+.topbar{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:16px 0; border-bottom:1px solid var(--line); }
+.logo{ width:62px; height:62px; flex:none; border-radius:10px; border:1px solid var(--line); background:#fff; display:grid; place-items:center; overflow:hidden; padding:0; }
+.logo img{ max-width:100%; max-height:100%; object-fit:contain; display:block; }
+.logo.empty{ background:transparent; border:1.5px dashed var(--glass-line); color:var(--muted); font:inherit; font-size:.72rem; line-height:1.2; padding:4px; cursor:pointer; }
+.inst{ flex:1 1 240px; min-width:0; }
+.inst strong{ display:block; font-family:"Bricolage Grotesque",system-ui,sans-serif; font-size:1.2rem; line-height:1.2; font-weight:650; }
+.inst span{ color:var(--muted); font-size:.95rem; }
+.who{ margin-left:auto; text-align:right; min-width:0; }
+.who strong{ display:block; font-weight:650; overflow-wrap:anywhere; }
+.who span{ color:var(--muted); font-size:.92rem; }
+@media (max-width:600px){ .who{ margin-left:0; text-align:left; flex-basis:100%; } }
+
+.tabs{ display:flex; gap:8px; margin:18px 0 16px; overflow-x:auto; padding-bottom:2px; }
+.tab{ font:inherit; font-weight:600; padding:10px 18px; border-radius:10px; border:1.5px solid var(--line); background:var(--panel); color:var(--ink); cursor:pointer; white-space:nowrap; }
+.tab[aria-selected="true"]{ background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+:is(.tab,.btn,.chip,.launch,.logo,input,select):focus-visible{ outline:3px solid var(--accent); outline-offset:2px; }
+
+.exp{ display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:16px; align-items:start; }
+.home{ display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:18px; align-items:start; }
+.wide{ grid-column:1 / -1; }
+@media (max-width:820px){ .exp,.home{ grid-template-columns:minmax(0,1fr); } }
+.panel{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; }
+.bench{ background:var(--soft); border-radius:16px; border:1px solid var(--line); padding:10px; display:flex; justify-content:center; }
+.bench.dark{ background:#0D1A1F; border-color:#1E3841; }
+.bench svg{ width:100%; max-width:380px; height:auto; display:block; }
+.stack{ display:grid; gap:16px; }
+.muted{ color:var(--muted); }
+.small{ font-size:.92rem; }
+.row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.btn{ font:inherit; font-weight:600; padding:9px 14px; border-radius:9px; border:1.5px solid var(--accent); background:transparent; color:var(--accent); cursor:pointer; }
+.btn.primary{ background:var(--accent); color:var(--on-accent); }
+.btn:disabled{ opacity:.45; cursor:not-allowed; }
+.chip{ font:inherit; font-size:.95rem; padding:7px 12px; border-radius:8px; border:1.5px solid var(--line); background:transparent; color:var(--ink); cursor:pointer; text-align:left; }
+.chip[aria-pressed="true"]{ border-color:var(--accent); background:var(--soft); font-weight:600; }
+.readout{ display:flex; gap:22px; flex-wrap:wrap; align-items:flex-end; margin:10px 0 12px; }
+.big{ font-family:"Bricolage Grotesque",system-ui,sans-serif; font-weight:700; font-size:2.6rem; line-height:1; }
+.big small{ font-size:1rem; font-weight:500; color:var(--muted); margin-left:4px; }
+.status{ min-height:1.5em; margin:8px 0 0; }
+.ok{ color:var(--good); font-weight:600; }
+.no{ color:var(--bad); font-weight:600; }
+label.inline{ display:flex; align-items:center; gap:8px; }
+input[type="number"],input[type="text"]{ font:inherit; padding:8px 10px; width:100%; border-radius:8px; border:1.5px solid var(--line); background:var(--panel); color:var(--ink); }
+#tAnswer{ width:9.5em; }
+table{ width:100%; border-collapse:collapse; font-size:.95rem; }
+th,td{ text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:middle; }
+th{ font-weight:600; color:var(--muted); }
+.scroll{ overflow-x:auto; }
+.sw{ display:inline-block; width:20px; height:20px; border-radius:50%; vertical-align:middle; margin-right:6px; border:1px solid var(--glass-line); }
+.sw.clear{ background:transparent; border-style:dashed; }
+.grid2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+hr{ border:0; border-top:1px solid var(--line); margin:14px 0; }
+footer{ margin-top:26px; color:var(--muted); font-size:.9rem; max-width:70ch; }
+
+/* Home */
+.launch-list{ display:grid; gap:0; margin-top:20px; border-top:1px solid var(--line); }
+.launch{ display:grid; grid-template-columns:40px minmax(0,1fr); gap:14px; align-items:center; text-align:left; font:inherit; color:var(--ink); background:transparent; border:0; border-bottom:1px solid var(--line); padding:14px 4px; cursor:pointer; }
+.launch:hover{ background:var(--soft); }
+.launch strong{ display:block; font-family:"Bricolage Grotesque",system-ui,sans-serif; font-size:1.1rem; font-weight:650; }
+.launch span{ color:var(--muted); font-size:.95rem; }
+.launch svg{ width:36px; height:36px; }
+.fields{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; margin-top:10px; }
+.fields label{ display:grid; gap:4px; font-size:.9rem; color:var(--muted); font-weight:500; }
+.fields .full{ grid-column:1 / -1; }
+@media (max-width:520px){ .fields{ grid-template-columns:minmax(0,1fr); } }
+input[type="file"]{ font:inherit; font-size:.9rem; max-width:100%; }
+
+/* SVG parts */
+.glass{ fill:var(--glass); stroke:var(--glass-line); stroke-width:2; }
+.liq{ fill:var(--liquid); }
+.metal{ fill:var(--metal); }
+.tick{ stroke:var(--glass-line); stroke-width:1; }
+.tlabel{ fill:var(--muted); font-size:10px; font-family:Figtree,system-ui,sans-serif; }
+.axis{ stroke:var(--muted); stroke-width:1; }
+.grid{ stroke:var(--line); stroke-width:1; stroke-dasharray:3 3; }
+.curve{ fill:none; stroke:var(--accent); stroke-width:2.5; stroke-linejoin:round; }
+#drop,#d1,#d2,#d3{ opacity:0; }
+#tubeLiq{ transition:fill .9s ease; }
+#fSvg .flame{ transform-origin:160px 300px; animation:flick 1.3s ease-in-out infinite alternate; }
+#fSvg .tint{ fill:var(--flame,#fff); opacity:0; transition:opacity .5s; }
+#fSvg .glow{ fill:var(--flame,#fff); opacity:0; transition:opacity .5s; }
+#fSvg.lit .tint{ opacity:.93; }
+#fSvg.lit .glow{ opacity:.26; }
+#loop{ transform:translate(250px,160px); transition:transform .7s ease; }
+#loop.in{ transform:translate(160px,236px); }
+#loop .salt{ opacity:0; transition:opacity .3s; }
+#loop.loaded .salt{ opacity:1; }
+@keyframes flick{ from{ transform:scale(1,1); } to{ transform:scale(.97,1.05); } }
+@media (prefers-reduced-motion: reduce){
+  #fSvg .flame{ animation:none; }
+  #loop,#tubeLiq,#fSvg .tint,#fSvg .glow{ transition:none; }
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div id="logoBox"></div>
+    <div class="inst"><strong id="bInst">SRM Institute of Science and Technology</strong><span id="bCampus">Tiruchirappalli campus</span></div>
+    <div class="who"><strong id="bName">Student name not set</strong><span id="bSub">Add your details on the Home page</span></div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Pages">
+    <button class="tab" role="tab" id="tab-home" data-target="home" aria-selected="true" aria-controls="home">Home</button>
+    <button class="tab" role="tab" id="tab-titration" data-target="titration" aria-selected="false" tabindex="-1" aria-controls="titration">Acid–base titration</button>
+    <button class="tab" role="tab" id="tab-flame" data-target="flame" aria-selected="false" tabindex="-1" aria-controls="flame">Flame test</button>
+    <button class="tab" role="tab" id="tab-indicator" data-target="indicator" aria-selected="false" tabindex="-1" aria-controls="indicator">Indicators and pH</button>
+  </div>
+
+  <main>
+  <!-- ============ HOME ============ -->
+  <section class="page home" id="home" role="tabpanel" aria-labelledby="tab-home">
+    <div>
+      <h1>Virtual chemistry lab</h1>
+      <p class="lede">Run three experiments on screen, record your readings, and download each one as a PDF lab report with your details on it.</p>
+      <div class="launch-list">
+        <button class="launch" data-go="titration">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3 C16 3 7 14 7 20 a9 9 0 0 0 18 0 C25 14 16 3 16 3Z" fill="#E0338A"/></svg>
+          <div><strong>Acid–base titration</strong><span>Titrate hydrochloric acid against sodium hydroxide and work out its concentration.</span></div>
+        </button>
+        <button class="launch" data-go="flame">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 C12 9 8 13 8 20 a8 8 0 0 0 16 0 C24 14 20 12 19 7 C17.5 9 17 5 16 2Z" fill="#F28C28"/></svg>
+          <div><strong>Flame test</strong><span>Identify seven metals by the colour they give a Bunsen flame, then try a mystery sample.</span></div>
+        </button>
+        <button class="launch" data-go="indicator">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="7" height="24" rx="3.5" fill="#E5262B"/><rect x="12.5" y="4" width="7" height="24" rx="3.5" fill="#3CB44B"/><rect x="21" y="4" width="7" height="24" rx="3.5" fill="#4B4BB0"/></svg>
+          <div><strong>Indicators and pH</strong><span>Test nine everyday solutions with four indicators and classify them as acidic, neutral or basic.</span></div>
+        </button>
+      </div>
+      <div class="row" style="margin-top:18px">
+        <button class="btn primary" id="hPdf">Download full lab report (PDF)</button>
+      </div>
+      <p class="status" id="hDl" aria-live="polite"></p>
+      <p class="muted small" style="margin:0;max-width:60ch">The full report includes every experiment where you have recorded results. Each experiment page also has its own report button.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Student details</h2>
+      <p class="muted small" style="margin:0">These appear at the top of every page and on each PDF report. They are saved in this browser.</p>
+      <div class="fields" id="fields">
+        <label class="full">Full name<input type="text" id="dName" autocomplete="name"></label>
+        <label>Register number<input type="text" id="dReg"></label>
+        <label>Section<input type="text" id="dSection"></label>
+        <label class="full">Course<input type="text" id="dCourse"></label>
+        <label>Year<input type="text" id="dYear"></label>
+        <label>Faculty name<input type="text" id="dFaculty"></label>
+        <label>Institution<input type="text" id="dInst"></label>
+        <label>Campus<input type="text" id="dCampus"></label>
+      </div>
+      <hr>
+      <h3>College logo</h3>
+      <p class="muted small" style="margin:0 0 8px">Upload a PNG or JPG. It shows in the top bar and on your PDF reports.</p>
+      <div class="row">
+        <input type="file" id="logoFile" accept="image/*" aria-label="Upload college logo">
+        <button class="btn" id="logoRemove">Remove logo</button>
+      </div>
+      <p class="status" id="logoMsg" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- ============ TITRATION ============ -->
+  <section class="page exp" id="titration" role="tabpanel" aria-labelledby="tab-titration" hidden>
+    <div class="bench">
+      <svg viewBox="0 0 340 540" role="img" aria-label="A burette of sodium hydroxide above a conical flask of hydrochloric acid with phenolphthalein, on a stand">
+        <defs>
+          <clipPath id="flaskClip"><path d="M140 410 H200 V434 L262 506 Q268 516 256 516 H84 Q72 516 78 506 L140 434 Z"/></clipPath>
+          <clipPath id="buretteClip"><rect x="150" y="40" width="40" height="300" rx="3"/></clipPath>
+        </defs>
+        <rect class="metal" x="30" y="516" width="280" height="10" rx="3"/>
+        <rect class="metal" x="44" y="30" width="10" height="496" rx="3"/>
+        <rect class="metal" x="44" y="120" width="106" height="8" rx="3"/>
+        <rect class="metal" x="146" y="114" width="48" height="20" rx="3"/>
+        <rect class="glass" x="150" y="40" width="40" height="300" rx="3"/>
+        <g clip-path="url(#buretteClip)"><rect id="bLiquid" class="liq" x="150" y="50" width="40" height="290"/></g>
+        <g id="ticks"></g>
+        <rect class="metal" x="160" y="340" width="20" height="10" rx="2"/>
+        <rect class="metal" x="180" y="342" width="18" height="6" rx="2"/>
+        <path class="glass" d="M165 350 h10 v18 l-5 10 l-5 -10 z"/>
+        <circle id="drop" cx="170" cy="382" r="3.5" fill="#7FB6C6"/>
+        <path d="M140 410 H200 V434 L262 506 Q268 516 256 516 H84 Q72 516 78 506 L140 434 Z" fill="var(--glass)" opacity=".55"/>
+        <g clip-path="url(#flaskClip)">
+          <rect id="tTint" class="liq" x="70" y="470" width="200" height="60" opacity=".85"/>
+          <rect id="tPink" x="70" y="470" width="200" height="60" fill="#E0338A" opacity="0"/>
+        </g>
+        <path class="glass" style="fill:none" d="M140 410 H200 V434 L262 506 Q268 516 256 516 H84 Q72 516 78 506 L140 434 Z"/>
+      </svg>
+    </div>
+
+    <div class="stack">
+      <div class="panel">
+        <h2>Find the strength of the acid</h2>
+        <p class="muted small" style="margin:0">The flask holds 25.0 mL of hydrochloric acid of unknown concentration with a few drops of phenolphthalein. The burette holds 0.100 mol/L sodium hydroxide. Add base until the colourless solution just turns pink.</p>
+        <div class="readout">
+          <div><div class="big"><span id="tReading">0.00</span><small>mL</small></div><div class="muted small">burette reading</div></div>
+          <div><div class="big" style="font-size:1.5rem" id="tColour">Colourless</div><div class="muted small">flask colour</div></div>
+          <div id="tPhBox"><div class="big" style="font-size:1.5rem" id="tPh">1.0</div><div class="muted small">pH meter</div></div>
+        </div>
+        <div class="row" id="tButtons">
+          <button class="btn primary" data-dv="1">Add 1.0 mL</button>
+          <button class="btn primary" data-dv="0.5">Add 0.5 mL</button>
+          <button class="btn primary" data-dv="0.1">Add 0.1 mL</button>
+          <button class="btn primary" data-dv="0.05">Add 1 drop</button>
+        </div>
+        <p class="status" id="tStatus" aria-live="polite" style="min-height:3em"></p>
+        <div class="row">
+          <button class="btn" id="tRecord">Record this reading</button>
+          <button class="btn" id="tRestart">Refill burette</button>
+          <button class="btn" id="tNew">New unknown acid</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Lab notebook</h3>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>#</th><th>Burette reading</th><th>Flask colour</th></tr></thead>
+            <tbody id="tRows"><tr><td colspan="3" class="muted">No readings yet. Record one at the colour change.</td></tr></tbody>
+          </table>
+        </div>
+        <hr>
+        <p class="small" style="margin:0 0 8px">At the endpoint the moles of acid equal the moles of base: <strong>M<sub>acid</sub> × 25.0 = 0.100 × V<sub>NaOH</sub></strong></p>
+        <div class="row">
+          <label class="inline" for="tAnswer">Acid concentration
+            <input id="tAnswer" type="number" step="0.001" min="0" inputmode="decimal" placeholder="mol/L">
+          </label>
+          <button class="btn primary" id="tCheck">Check answer</button>
+        </div>
+        <p class="status" id="tMsg" aria-live="polite"></p>
+        <hr>
+        <div class="row"><button class="btn primary" id="tPdf">Download report (PDF)</button></div>
+        <p class="status" id="tDl" aria-live="polite"></p>
+      </div>
+
+      <div class="panel">
+        <label class="inline"><input type="checkbox" id="tShowPh" checked> Show pH meter and titration curve</label>
+        <div id="tChartWrap" style="margin-top:10px">
+          <svg viewBox="0 0 340 214" role="img" aria-label="Graph of pH against volume of sodium hydroxide added" style="width:100%;height:auto;display:block">
+            <line class="grid" x1="34" x2="330" y1="97" y2="97"/>
+            <line class="axis" x1="34" x2="330" y1="184" y2="184"/>
+            <line class="axis" x1="34" x2="34" y1="10" y2="184"/>
+            <g id="chartLabels"></g>
+            <path id="tCurve" class="curve" d=""/>
+            <circle id="tDot" r="4.5" fill="var(--accent)" cx="34" cy="184"/>
+            <text class="tlabel" x="182" y="211" text-anchor="middle">Volume of NaOH added (mL)</text>
+            <text class="tlabel" x="4" y="9">pH</text>
+          </svg>
+          <p class="muted small" style="margin:4px 0 0">The curve rises steeply at the equivalence point. Untick the box to find the endpoint by colour alone, as in a real lab.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FLAME TEST ============ -->
+  <section class="page exp" id="flame" role="tabpanel" aria-labelledby="tab-flame" hidden>
+    <div class="bench dark">
+      <svg id="fSvg" viewBox="0 0 320 440" role="img" aria-label="A Bunsen burner flame with a wire loop dipped in a metal salt">
+        <circle class="glow" cx="160" cy="225" r="150"/>
+        <g class="flame">
+          <path d="M160 300 C120 270 128 210 160 120 C192 210 200 270 160 300 Z" fill="#5B8CFF" opacity=".55"/>
+          <path class="tint" d="M160 300 C120 270 128 210 160 120 C192 210 200 270 160 300 Z"/>
+          <path d="M160 300 C146 282 148 250 160 212 C172 250 174 282 160 300 Z" fill="#2A45D8" opacity=".85"/>
+        </g>
+        <ellipse cx="160" cy="424" rx="72" ry="12" fill="#3B4F57"/>
+        <rect x="147" y="300" width="26" height="118" fill="#7C929A"/>
+        <rect x="139" y="345" width="42" height="16" rx="3" fill="#586E76"/>
+        <rect x="144" y="296" width="32" height="8" rx="2" fill="#93A8AF"/>
+        <g id="loop">
+          <line x1="0" y1="0" x2="64" y2="-124" stroke="#C7D3D6" stroke-width="2"/>
+          <circle r="8" fill="none" stroke="#C7D3D6" stroke-width="2"/>
+          <circle class="salt" r="6.5" fill="#F4F4F0"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="stack">
+      <div class="panel">
+        <h2>Which metal is in the flame?</h2>
+        <p class="muted small" style="margin:0 0 12px">Metal atoms glow in a characteristic colour when heated. Dip the clean wire loop in a salt and hold it in the flame. Then try the mystery sample.</p>
+        <div class="grid2" id="saltBtns"></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="fClean">Clean the loop</button>
+          <button class="btn primary" id="fMystery">Test a mystery sample</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 id="fName">Nothing in the flame</h3>
+        <p id="fObs" class="status" aria-live="polite" style="margin:0">A Bunsen flame with plenty of air burns blue. Choose a salt to see what changes.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Colours you have seen</h3>
+        <ul id="fLog" style="list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px">
+          <li class="muted small">Nothing tested yet.</li>
+        </ul>
+        <hr>
+        <p class="muted small" style="margin:0">Heating gives electrons in the metal extra energy. When they drop back to lower energy levels they release that energy as light, and each metal releases its own set of colours.</p>
+        <hr>
+        <div class="row"><button class="btn primary" id="fPdf">Download report (PDF)</button></div>
+        <p class="status" id="fDl" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INDICATORS ============ -->
+  <section class="page exp" id="indicator" role="tabpanel" aria-labelledby="tab-indicator" hidden>
+    <div class="bench">
+      <svg viewBox="0 0 200 300" role="img" aria-label="A test tube containing the chosen solution" style="max-width:280px">
+        <defs><clipPath id="tubeClip"><path d="M65 20 V215 a35 35 0 0 0 70 0 V20 Z"/></clipPath></defs>
+        <g clip-path="url(#tubeClip)"><rect id="tubeLiq" class="liq" x="60" y="110" width="80" height="170" opacity=".8"/></g>
+        <path class="glass" style="fill:none" d="M65 20 V215 a35 35 0 0 0 70 0 V20"/>
+        <circle id="d1" cx="100" cy="30" r="4"/>
+        <circle id="d2" cx="100" cy="30" r="4"/>
+        <circle id="d3" cx="100" cy="30" r="4"/>
+        <text id="tubeLabel" x="100" y="290" text-anchor="middle" class="tlabel" style="font-size:12px"></text>
+      </svg>
+    </div>
+
+    <div class="stack">
+      <div class="panel">
+        <h2>Test a solution</h2>
+        <p class="muted small" style="margin:0 0 10px">Pick a solution and an indicator, then add three drops. Your results collect in the table below.</p>
+        <h3>Solution</h3>
+        <div class="grid2" id="solBtns" style="margin-bottom:12px"></div>
+        <h3>Indicator</h3>
+        <div class="grid2" id="indBtns" style="margin-bottom:12px"></div>
+        <div class="row">
+          <button class="btn primary" id="iAdd">Add 3 drops</button>
+          <button class="btn" id="iRinse">Rinse tube</button>
+        </div>
+        <p class="status" id="iMsg" aria-live="polite">Choose a solution and an indicator, then add the drops.</p>
+      </div>
+    </div>
+
+    <div class="panel wide">
+      <h3>Results table</h3>
+      <div class="scroll"><table id="iTable"></table></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="iPdf">Download report (PDF)</button>
+        <button class="btn" id="iClear">Clear results</button>
+      </div>
+      <p class="status" id="iDl" aria-live="polite"></p>
+    </div>
+  </section>
+  </main>
+
+  <footer>Values are simplified for teaching. In a real laboratory, acids, bases and metal salts are handled with goggles, gloves and a teacher present.</footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const hex2rgb=h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));};
+const mix=(c1,c2,t)=>{const a=hex2rgb(c1),b=hex2rgb(c2);return '#'+a.map((v,i)=>Math.round(lerp(v,b[i],t)).toString(16).padStart(2,'0')).join('');};
+function stopsColor(stops,x){
+  if(x<=stops[0][0]) return stops[0][1];
+  for(let i=1;i<stops.length;i++){
+    if(x<=stops[i][0]){ const [x0,c0]=stops[i-1],[x1,c1]=stops[i]; return mix(c0,c1,(x-x0)/(x1-x0)); }
+  }
+  return stops[stops.length-1][1];
+}
+function setStatus(el,txt,cls){ el.textContent=txt; el.className='status'+(cls?' '+cls:''); }
+const store={
+  get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+
+/* ---------- Pages / tabs ---------- */
+const tabs=$$('[role=tab]');
+function show(id){
+  tabs.forEach(t=>{ const on=t.dataset.target===id; t.setAttribute('aria-selected',on); t.tabIndex=on?0:-1; });
+  $$('.page').forEach(s=>{ s.hidden = s.id!==id; });
+}
+tabs.forEach((t,i)=>{
+  t.addEventListener('click',()=>show(t.dataset.target));
+  t.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+      const n=tabs[(i+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length];
+      n.focus(); show(n.dataset.target);
+    }
+  });
+});
+$$('[data-go]').forEach(b=>b.addEventListener('click',()=>{ show(b.dataset.go); window.scrollTo(0,0); }));
+
+/* ---------- Student details and logo ---------- */
+const DEFAULTS={name:'',reg:'',section:'',course:'B.Tech Computer Science and Engineering (Cybersecurity)',year:'1st year',faculty:'',inst:'SRM Institute of Science and Technology',campus:'Tiruchirappalli campus'};
+const FIELD_IDS={name:'dName',reg:'dReg',section:'dSection',course:'dCourse',year:'dYear',faculty:'dFaculty',inst:'dInst',campus:'dCampus'};
+let D=Object.assign({},DEFAULTS,store.get('vcl_details')||{});
+let LOGO=store.get('vcl_logo');
+function renderBanner(){
+  $('#bInst').textContent=D.inst||'Institution';
+  $('#bCampus').textContent=D.campus||'';
+  $('#bName').textContent=D.name||'Student name not set';
+  const sub=[D.reg?('Reg. no. '+D.reg):'', D.section?('Section '+D.section):'', D.year].filter(Boolean).join(', ');
+  $('#bSub').textContent = D.name||D.reg ? sub : 'Add your details on the Home page';
+  const box=$('#logoBox');
+  if(LOGO&&LOGO.url){
+    box.innerHTML='<div class="logo"><img alt="College logo"></div>';
+    $('img',box).src=LOGO.url;
+  } else {
+    box.innerHTML='<button class="logo empty" type="button" aria-label="Add college logo on the Home page">Add logo</button>';
+    $('button',box).addEventListener('click',()=>{ show('home'); const f=$('#logoFile'); f.scrollIntoView({block:'center'}); f.focus(); });
+  }
+}
+Object.keys(FIELD_IDS).forEach(k=>{
+  const el=$('#'+FIELD_IDS[k]); el.value=D[k];
+  el.addEventListener('input',()=>{ D[k]=el.value; store.set('vcl_details',D); renderBanner(); });
+});
+$('#logoFile').addEventListener('change',e=>{
+  const file=e.target.files&&e.target.files[0]; if(!file) return;
+  const msg=$('#logoMsg');
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const nw=img.naturalWidth||200, nh=img.naturalHeight||200, sc=Math.min(1,320/Math.max(nw,nh));
+      const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(nw*sc)); c.height=Math.max(1,Math.round(nh*sc));
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      LOGO={url:c.toDataURL('image/png'),w:c.width,h:c.height};
+      store.set('vcl_logo',LOGO); renderBanner(); setStatus(msg,'Logo added.','ok');
+    };
+    img.onerror=()=>setStatus(msg,'That file could not be read as an image. Try a PNG or JPG.','no');
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(file);
+});
+$('#logoRemove').addEventListener('click',()=>{ LOGO=null; store.del('vcl_logo'); $('#logoFile').value=''; renderBanner(); setStatus($('#logoMsg'),'Logo removed.'); });
+
+/* ---------- Titration ---------- */
+const CB=0.100, VA=25, PX=5.4, MAXV=50;
+const T={ca:0, vol:0, pts:[], rows:[]};
+const cx=v=>34+(v/50)*296, cy=ph=>184-(ph/14)*174;
+
+(function buildStatic(){
+  let s='';
+  for(let m=0;m<=50;m++){
+    const y=50+m*PX, major=m%5===0;
+    s+=`<line class="tick" x1="150" x2="${major?164:157}" y1="${y}" y2="${y}"/>`;
+    if(major) s+=`<text class="tlabel" x="196" y="${y+3.5}">${m}</text>`;
+  }
+  $('#ticks').innerHTML=s;
+  let l='';
+  [0,7,14].forEach(p=>{ l+=`<text class="tlabel" x="29" y="${cy(p)+3}" text-anchor="end">${p}</text>`; });
+  [0,10,20,30,40,50].forEach(v=>{ l+=`<text class="tlabel" x="${cx(v)}" y="197" text-anchor="middle">${v}</text>`; });
+  $('#chartLabels').innerHTML=l;
+})();
+
+function phAt(v){
+  const na=T.ca*VA/1000, nb=CB*v/1000, vt=(VA+v)/1000, d=na-nb;
+  if(Math.abs(d)<1e-9) return 7;
+  return d>0 ? -Math.log10(d/vt) : 14+Math.log10(-d/vt);
+}
+const veq=()=>T.ca*VA/CB;
+function colourWord(ph){
+  const t=clamp((ph-8.2)/1.8,0,1);
+  if(ph<8.2) return 'Colourless';
+  if(t<0.35) return 'Faint pink';
+  if(t<0.85) return 'Pink';
+  return 'Deep pink';
+}
+function newUnknown(){
+  T.ca=Math.round((0.05+Math.random()*0.10)*1000)/1000;
+  T.rows=[]; $('#tAnswer').value=''; setStatus($('#tMsg'),''); setStatus($('#tDl'),'');
+  restart();
+}
+function restart(){ T.vol=0; T.pts=[{v:0,ph:phAt(0)}]; renderT(); }
+function dropAnim(){
+  if(reduce) return;
+  $('#drop').animate([{transform:'translateY(0)',opacity:1},{transform:'translateY(88px)',opacity:1}],{duration:380,easing:'ease-in'});
+}
+function addVol(dv){
+  const start=T.vol, end=Math.min(MAXV,Math.round((start+dv)*100)/100);
+  if(end<=start) return;
+  for(let v=start+0.05; v<=end+1e-9; v+=0.05){ const vv=Math.round(v*100)/100; T.pts.push({v:vv,ph:phAt(vv)}); }
+  T.vol=end; dropAnim(); renderT();
+}
+function renderT(){
+  const v=T.vol, ph=phAt(v), t=clamp((ph-8.2)/1.8,0,1);
+  const my=50+v*PX;
+  $('#bLiquid').setAttribute('y',my); $('#bLiquid').setAttribute('height',340-my);
+  const top=470-(v/50)*14;
+  ['#tTint','#tPink'].forEach(id=>{ $(id).setAttribute('y',top); $(id).setAttribute('height',530-top); });
+  $('#tPink').setAttribute('opacity',(t*0.85).toFixed(3));
+  $('#tReading').textContent=v.toFixed(2);
+  $('#tColour').textContent=colourWord(ph);
+  $('#tPh').textContent=ph.toFixed(1);
+  $$('#tButtons .btn').forEach(b=>{ b.disabled = v>=MAXV; });
+  const st=$('#tStatus');
+  if(v===0) st.textContent='Add sodium hydroxide from the burette. Go slowly once pink starts to appear.';
+  else if(ph<8.2) st.textContent='Swirl and keep adding. The colour has not changed yet.';
+  else if(v<=veq()+0.3) st.textContent='The colour has changed. This is the endpoint: record the burette reading, then calculate.';
+  else st.textContent='You have gone well past the endpoint. Refill the burette and add drops slowly near the end.';
+  $('#tCurve').setAttribute('d', T.pts.map((p,i)=>(i?'L':'M')+cx(p.v).toFixed(1)+' '+cy(p.ph).toFixed(1)).join(' '));
+  $('#tDot').setAttribute('cx',cx(v)); $('#tDot').setAttribute('cy',cy(ph));
+  $('#tRows').innerHTML = T.rows.length
+    ? T.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.vol.toFixed(2)} mL</td><td>${r.col}</td></tr>`).join('')
+    : '<tr><td colspan="3" class="muted">No readings yet. Record one at the colour change.</td></tr>';
+}
+$$('#tButtons .btn').forEach(b=>b.addEventListener('click',()=>addVol(parseFloat(b.dataset.dv))));
+$('#tRestart').addEventListener('click',restart);
+$('#tNew').addEventListener('click',newUnknown);
+$('#tRecord').addEventListener('click',()=>{
+  T.rows.push({vol:T.vol,col:colourWord(phAt(T.vol))});
+  if(T.rows.length>8) T.rows.shift();
+  renderT();
+});
+$('#tShowPh').addEventListener('change',e=>{ $('#tChartWrap').hidden=!e.target.checked; $('#tPhBox').hidden=!e.target.checked; });
+$('#tCheck').addEventListener('click',()=>{
+  const m=$('#tMsg'), val=parseFloat($('#tAnswer').value);
+  if(isNaN(val)){ setStatus(m,'Type your answer as a number, for example 0.085.','no'); return; }
+  const err=Math.abs(val-T.ca)/T.ca;
+  if(err<=0.02) setStatus(m,`Correct. The acid was ${T.ca.toFixed(3)} mol/L. Press "New unknown acid" to try another.`,'ok');
+  else setStatus(m,'Not quite. Use the reading at the first lasting pink: M(acid) = 0.100 × V(NaOH) ÷ 25.0.','no');
+});
+
+/* ---------- Flame test ---------- */
+const SALTS=[
+  {id:'li',metal:'Lithium',salt:'LiCl',col:'#E0193F',name:'Crimson red',note:'A deep, slightly pink red. Easy to confuse with strontium.'},
+  {id:'na',metal:'Sodium',salt:'NaCl',col:'#FFC61A',name:'Intense golden yellow',note:'Very strong. A trace of sodium in a sample can hide other colours.'},
+  {id:'k',metal:'Potassium',salt:'KCl',col:'#B784E0',name:'Lilac',note:'A pale violet. Cobalt-blue glass cuts out yellow sodium light so lilac is easier to see.'},
+  {id:'ca',metal:'Calcium',salt:'CaCl\u2082',col:'#E2572B',name:'Brick red',note:'An orange-red, warmer than lithium or strontium.'},
+  {id:'sr',metal:'Strontium',salt:'SrCl\u2082',col:'#FF2A2A',name:'Bright scarlet red',note:'A vivid red, used in red fireworks and flares.'},
+  {id:'ba',metal:'Barium',salt:'BaCl\u2082',col:'#9BD836',name:'Pale apple green',note:'A yellowish green, used in green fireworks.'},
+  {id:'cu',metal:'Copper',salt:'CuCl\u2082',col:'#2ED1B0',name:'Blue-green',note:'A blue-green flame, sometimes with a flash of white.'}
+];
+const F={cur:null,mystery:null,log:[],att:0,myst:[]};
+const fSvg=$('#fSvg'), loop=$('#loop');
+function setFlame(s){
+  if(s){ fSvg.style.setProperty('--flame',s.col); fSvg.classList.add('lit'); loop.classList.add('in','loaded'); }
+  else { fSvg.classList.remove('lit'); loop.classList.remove('in','loaded'); }
+}
+function renderLog(){
+  $('#fLog').innerHTML = F.log.length
+    ? F.log.map(id=>{ const s=SALTS.find(x=>x.id===id); return `<li><span class="sw" style="background:${s.col}"></span><strong>${s.metal}</strong> (${s.salt}): ${s.name.toLowerCase()}</li>`; }).join('')
+    : '<li class="muted small">Nothing tested yet.</li>';
+}
+SALTS.forEach(s=>{
+  const b=document.createElement('button');
+  b.className='chip'; b.type='button'; b.dataset.id=s.id;
+  b.innerHTML=`${s.metal} <span class="muted">${s.salt}</span>`;
+  b.addEventListener('click',()=>pickSalt(s));
+  $('#saltBtns').appendChild(b);
+});
+function pickSalt(s){
+  const nm=$('#fName'), ob=$('#fObs');
+  if(F.mystery){
+    F.att++;
+    if(s.id===F.mystery.id){
+      nm.textContent=`Correct: ${s.metal}`; ob.className='status ok'; ob.textContent=`${s.name}. ${s.note}`;
+      F.myst.push({metal:s.metal,salt:s.salt,attempts:F.att});
+      F.mystery=null; $('#fMystery').textContent='Test a mystery sample';
+    } else {
+      nm.textContent='Mystery sample'; ob.className='status no'; ob.textContent=`Not ${s.metal}. Look at the flame again and try another metal.`;
+    }
+    return;
+  }
+  F.cur=s; setFlame(s);
+  nm.textContent=`${s.metal} (${s.salt})`; ob.className='status'; ob.textContent=`${s.name}. ${s.note}`;
+  if(!F.log.includes(s.id)) F.log.push(s.id);
+  renderLog();
+}
+$('#fClean').addEventListener('click',()=>{
+  F.cur=null; F.mystery=null; setFlame(null);
+  $('#fMystery').textContent='Test a mystery sample';
+  $('#fName').textContent='Nothing in the flame';
+  $('#fObs').className='status'; $('#fObs').textContent='Loop cleaned. The flame is back to blue.';
+});
+$('#fMystery').addEventListener('click',()=>{
+  F.mystery=SALTS[Math.floor(Math.random()*SALTS.length)]; F.att=0;
+  setFlame(F.mystery);
+  $('#fName').textContent='Mystery sample';
+  $('#fObs').className='status'; $('#fObs').textContent='A mystery sample is in the flame. Watch the colour, then click the metal you think it is.';
+  $('#fMystery').textContent='Try a different mystery sample';
+});
+
+/* ---------- Indicators ---------- */
+const SOLS=[
+  {name:'Dilute hydrochloric acid (0.1 mol/L)',ph:1.0},
+  {name:'Lemon juice',ph:2.2},
+  {name:'Vinegar',ph:2.9},
+  {name:'Black coffee',ph:5.0},
+  {name:'Pure water',ph:7.0},
+  {name:'Baking soda solution',ph:8.3},
+  {name:'Soap solution',ph:9.8},
+  {name:'Milk of magnesia',ph:10.5},
+  {name:'Dilute sodium hydroxide (0.1 mol/L)',ph:13.0}
+];
+const UNI=[[1,'#E5262B'],[3,'#F26A25'],[4,'#F89B1C'],[5,'#F7D117'],[6,'#B8D432'],[7,'#3CB44B'],[8,'#1FA58A'],[9,'#2F7FC1'],[10,'#4B4BB0'],[12,'#7A3FA0'],[14,'#4E2A7A']];
+function classify(ph){ return ph<3?'strongly acidic':ph<6.5?'acidic':ph<=7.5?'neutral':ph<=11?'basic':'strongly basic'; }
+const INDS=[
+  {id:'litmus',name:'Litmus',fn:ph=>({
+    c:stopsColor([[4.5,'#E03A3E'],[6.5,'#8E4FB3'],[8.5,'#3A5CD6']],ph),
+    n:ph<=5?'red':ph<=8?'purple':'blue',
+    m:ph<=5?'Red litmus: the solution is acidic.':ph<=8?'Purple litmus: the solution is close to neutral.':'Blue litmus: the solution is basic.'})},
+  {id:'mo',name:'Methyl orange',fn:ph=>({
+    c:stopsColor([[3.1,'#E5322D'],[3.75,'#F5871F'],[4.4,'#F7D31E']],ph),
+    n:ph<3.1?'red':ph<=4.4?'orange':'yellow',
+    m:ph<3.1?'Red: the pH is below 3.1, so the solution is strongly acidic.':ph<=4.4?'Orange: the pH is between 3.1 and 4.4.':'Yellow: the pH is above 4.4. Methyl orange cannot say more than that.'})},
+  {id:'ph',name:'Phenolphthalein',fn:ph=>({
+    c:ph<8.2?null:stopsColor([[8.2,'#F3D6E4'],[10,'#E0338A']],ph),
+    n:ph<8.2?'colourless':ph<10?'light pink':'pink',
+    m:ph<8.2?'Colourless: the pH is below 8.2, so the solution is acidic or neutral.':ph<10?'Light pink: the pH is between 8.2 and 10, so the solution is weakly basic.':'Pink: the pH is above 10, so the solution is strongly basic.'})},
+  {id:'uni',name:'Universal indicator',fn:ph=>({
+    c:stopsColor(UNI,ph),
+    n:ph<2?'red':ph<4?'orange':ph<6?'yellow':ph<6.5?'yellow-green':ph<7.5?'green':ph<8.5?'blue-green':ph<10?'blue':ph<12?'indigo':'violet',
+    m:`Universal indicator gives a pH of about ${ph.toFixed(1)}: the solution is ${classify(ph)}.`})}
+];
+const I={sol:0,ind:'uni',results:{}};
+function buildIndicatorUI(){
+  const sb=$('#solBtns'); sb.innerHTML='';
+  SOLS.forEach((s,i)=>{
+    const b=document.createElement('button'); b.className='chip'; b.type='button'; b.textContent=s.name; b.setAttribute('aria-pressed',i===I.sol);
+    b.addEventListener('click',()=>{ I.sol=i; resetTube(); syncPressed(); });
+    sb.appendChild(b);
+  });
+  const ib=$('#indBtns'); ib.innerHTML='';
+  INDS.forEach(d=>{
+    const b=document.createElement('button'); b.className='chip'; b.type='button'; b.textContent=d.name; b.dataset.id=d.id; b.setAttribute('aria-pressed',d.id===I.ind);
+    b.addEventListener('click',()=>{ I.ind=d.id; resetTube(); syncPressed(); });
+    ib.appendChild(b);
+  });
+}
+function syncPressed(){
+  $$('#solBtns .chip').forEach((b,i)=>b.setAttribute('aria-pressed',i===I.sol));
+  $$('#indBtns .chip').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===I.ind));
+}
+function resetTube(){
+  $('#tubeLiq').style.fill='';
+  const nm=SOLS[I.sol].name;
+  $('#tubeLabel').textContent=nm.length>26?nm.slice(0,25)+'\u2026':nm;
+  setStatus($('#iMsg'),'Ready. Add three drops of '+INDS.find(d=>d.id===I.ind).name.toLowerCase()+'.');
+}
+function renderMatrix(){
+  let h='<thead><tr><th>Solution</th>'+INDS.map(d=>`<th>${d.name}</th>`).join('')+'</tr></thead><tbody>';
+  SOLS.forEach((s,i)=>{
+    h+=`<tr><td>${s.name}</td>`;
+    INDS.forEach(d=>{
+      const r=I.results[i+'-'+d.id];
+      h+= r ? `<td><span class="sw ${r.c?'':'clear'}" ${r.c?`style="background:${r.c}"`:''}></span>${r.n}</td>` : '<td class="muted">not tested</td>';
+    });
+    h+='</tr>';
+  });
+  $('#iTable').innerHTML=h+'</tbody>';
+}
+$('#iAdd').addEventListener('click',()=>{
+  const s=SOLS[I.sol], d=INDS.find(x=>x.id===I.ind), r=d.fn(s.ph);
+  if(!reduce){
+    ['#d1','#d2','#d3'].forEach((id,k)=>{
+      const el=$(id); el.style.fill=r.c||'#9FC4D0';
+      el.animate([{transform:'translateY(0)',opacity:1},{transform:'translateY(105px)',opacity:1}],{duration:420,delay:k*170,easing:'ease-in'});
+    });
+  }
+  setTimeout(()=>{ $('#tubeLiq').style.fill = r.c || ''; }, reduce?0:450);
+  I.results[I.sol+'-'+I.ind]=r;
+  setStatus($('#iMsg'),`${d.name} turned ${r.n}. ${r.m}`);
+  renderMatrix();
+});
+$('#iRinse').addEventListener('click',resetTube);
+$('#iClear').addEventListener('click',()=>{ I.results={}; renderMatrix(); resetTube(); });
+
+/* ---------- PDF reports ---------- */
+const PW=210, PH=297, MG=18, CW=PW-2*MG;
+let P=null;
+const asc=s=>String(s==null?'':s)
+  .replace(/[\u2080-\u2089]/g,c=>String(c.charCodeAt(0)-0x2080))
+  .replace(/[\u2013\u2014]/g,'-').replace(/\u2192/g,'->').replace(/\u2026/g,'...').replace(/\u00f7/g,'/')
+  .replace(/[^\x20-\x7E\n\xA0-\xFF]/g,'?');
+const INK=[16,38,46], MUTED=[75,97,104], TEAL=[11,110,120];
+
+function ensure(h){ if(P.y+h>PH-MG-8){ P.doc.addPage(); P.y=MG; } }
+function heading(text,size){
+  const d=P.doc; size=size||12; ensure(size*0.6+6);
+  d.setFont('helvetica','bold'); d.setFontSize(size); d.setTextColor(...INK);
+  d.text(asc(text),MG,P.y); P.y+=size*0.42+3;
+}
+function para(text,size){
+  const d=P.doc; size=size||10;
+  d.setFont('helvetica','normal'); d.setFontSize(size); d.setTextColor(...INK);
+  const lines=d.splitTextToSize(asc(text),CW); const lh=size*0.42;
+  lines.forEach(l=>{ ensure(lh+1); d.text(l,MG,P.y); P.y+=lh+0.6; });
+  P.y+=2;
+}
+function bullets(list){
+  const d=P.doc; d.setFont('helvetica','normal'); d.setFontSize(10); d.setTextColor(...INK);
+  list.forEach(t=>{
+    const lines=d.splitTextToSize(asc(t),CW-7);
+    ensure(lines.length*4.6+1);
+    d.text('-',MG+1.5,P.y); d.text(lines,MG+6,P.y); P.y+=lines.length*4.6+0.8;
+  });
+  P.y+=2;
+}
+function table(head,rows,w){
+  const d=P.doc; d.setFontSize(9);
+  const drawRow=(cells,isHead)=>{
+    const lines=cells.map((c,i)=>{ const t=(typeof c==='object')?c.t:c; const sw=(typeof c==='object'&&('c' in c))?6:0; d.setFont('helvetica',isHead?'bold':'normal'); return d.splitTextToSize(asc(t),w[i]-4-sw); });
+    const h=Math.max(...lines.map(l=>l.length))*4.2+3.4;
+    ensure(h);
+    if(isHead){ d.setFillColor(220,234,231); d.rect(MG,P.y,CW,h,'F'); }
+    d.setDrawColor(198,214,211); d.setLineWidth(.2); d.line(MG,P.y+h,MG+CW,P.y+h);
+    let x=MG;
+    cells.forEach((c,i)=>{
+      d.setFont('helvetica',isHead?'bold':'normal'); d.setFontSize(9); d.setTextColor(...INK);
+      let tx=x+2;
+      if(typeof c==='object'&&('c' in c)){
+        d.setDrawColor(100,130,140); d.setLineWidth(.25);
+        if(c.c){ const [r,g,b]=hex2rgb(c.c); d.setFillColor(r,g,b); d.circle(x+4.6,P.y+h/2,1.9,'FD'); }
+        else d.circle(x+4.6,P.y+h/2,1.9,'S');
+        tx=x+8.5;
+      }
+      d.text(lines[i],tx,P.y+4.6);
+      x+=w[i];
+    });
+    P.y+=h;
+  };
+  drawRow(head,true); rows.forEach(r=>drawRow(r,false)); P.y+=5;
+}
+function kv(label,value,x,w){
+  const d=P.doc;
+  d.setFont('helvetica','bold'); d.setFontSize(9.5); d.setTextColor(...MUTED); d.text(asc(label)+':',x,P.y);
+  const lw=d.getTextWidth(asc(label)+': ');
+  d.setFont('helvetica','normal'); d.setTextColor(...INK);
+  const lines=d.splitTextToSize(asc(value||'-'),w-lw-2); d.text(lines,x+lw,P.y);
+  return lines.length;
+}
+function startReport(title){
+  const {jsPDF}=window.jspdf;
+  P={doc:new jsPDF({unit:'mm',format:'a4'}),y:MG,n:0};
+  const d=P.doc; let x=MG;
+  if(LOGO&&LOGO.url){
+    const h=17, w=Math.min(30,h*LOGO.w/LOGO.h), hh=w*LOGO.h/LOGO.w;
+    try{ d.addImage(LOGO.url,'PNG',MG,P.y,w,Math.min(h,hh)); x=MG+w+4; }catch(e){}
+  }
+  d.setFont('helvetica','bold'); d.setFontSize(13); d.setTextColor(...INK);
+  d.text(d.splitTextToSize(asc(D.inst||''),PW-MG-x),x,P.y+6);
+  d.setFont('helvetica','normal'); d.setFontSize(10); d.setTextColor(...MUTED);
+  d.text(asc(D.campus||''),x,P.y+12);
+  P.y+=22; d.setDrawColor(...TEAL); d.setLineWidth(.6); d.line(MG,P.y,PW-MG,P.y); P.y+=9;
+  d.setFont('helvetica','bold'); d.setFontSize(17); d.setTextColor(...INK); d.text(asc(title),MG,P.y); P.y+=7;
+  d.setFont('helvetica','normal'); d.setFontSize(9.5); d.setTextColor(...MUTED);
+  d.text('Date: '+new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}),MG,P.y); P.y+=7;
+  const half=CW/2;
+  let n1=kv('Name',D.name,MG,half), n2=kv('Register number',D.reg,MG+half,half); P.y+=Math.max(n1,n2)*4.6+1.4;
+  n1=kv('Year',D.year,MG,half); n2=kv('Section',D.section,MG+half,half); P.y+=Math.max(n1,n2)*4.6+1.4;
+  n1=kv('Course',D.course,MG,CW); P.y+=n1*4.6+1.4;
+  n1=kv('Faculty',D.faculty,MG,CW); P.y+=n1*4.6+4;
+  d.setDrawColor(198,214,211); d.setLineWidth(.3); d.line(MG,P.y,PW-MG,P.y); P.y+=8;
+}
+function beginExperiment(title){
+  if(P.n>0){ P.doc.addPage(); P.y=MG; }
+  P.n++;
+  heading(title,14); P.y+=1;
+}
+function pdfChart(pts){
+  const d=P.doc, w=112, h=60, x0=MG+12;
+  ensure(h+18);
+  const top=P.y+2, bottom=top+h;
+  const bx=v=>x0+(v/50)*w, by=ph=>bottom-(ph/14)*h;
+  d.setDrawColor(...MUTED); d.setLineWidth(.3);
+  d.line(x0,top,x0,bottom); d.line(x0,bottom,x0+w,bottom);
+  d.setLineDashPattern([1,1],0); d.setDrawColor(190,205,203); d.line(x0,by(7),x0+w,by(7)); d.setLineDashPattern([],0);
+  d.setFont('helvetica','normal'); d.setFontSize(8); d.setTextColor(...MUTED);
+  [0,7,14].forEach(p=>d.text(String(p),x0-2,by(p)+1,{align:'right'}));
+  [0,10,20,30,40,50].forEach(v=>d.text(String(v),bx(v),bottom+4,{align:'center'}));
+  d.text('Volume of NaOH added (mL)',x0+w/2,bottom+9,{align:'center'});
+  d.text('pH',x0-9,top+2);
+  d.setDrawColor(...TEAL); d.setLineWidth(.5);
+  const step=Math.max(1,Math.floor(pts.length/250));
+  let prev=pts[0];
+  for(let i=step;i<pts.length;i+=step){ const p=pts[i]; d.line(bx(prev.v),by(prev.ph),bx(p.v),by(p.ph)); prev=p; }
+  const last=pts[pts.length-1]; if(prev!==last) d.line(bx(prev.v),by(prev.ph),bx(last.v),by(last.ph));
+  d.setLineWidth(.2); P.y=bottom+14;
+}
+
+const SEC={
+  t(){
+    const coloured=T.rows.filter(r=>r.col!=='Colourless');
+    if(!coloured.length) throw new Error('Titration: record a reading at the colour change first (use "Record this reading").');
+    const ev=Math.min(...coloured.map(r=>r.vol)), m1=CB*ev/VA;
+    beginExperiment('Experiment: Acid-base titration');
+    heading('Aim'); para('To determine the concentration of a hydrochloric acid solution by titrating it against standard 0.100 mol/L sodium hydroxide using phenolphthalein as the indicator.');
+    heading('Apparatus and reagents'); bullets(['50 mL burette, 25.0 mL pipette, conical flask, burette stand','0.100 mol/L sodium hydroxide (NaOH) in the burette','Hydrochloric acid (HCl) of unknown concentration: 25.0 mL in the flask','Phenolphthalein indicator']);
+    heading('Principle'); para('Hydrochloric acid and sodium hydroxide react as HCl + NaOH -> NaCl + H2O. At the endpoint the moles of acid equal the moles of base, so M1 x V1 = M2 x V2. Phenolphthalein is colourless below pH 8.2 and pink above pH 10, so the first lasting pink colour marks the endpoint.');
+    heading('Procedure'); bullets(['Rinse and fill the burette with 0.100 mol/L NaOH and note the initial reading.','Pipette 25.0 mL of the acid into the flask and add 2 to 3 drops of phenolphthalein.','Run in the base while swirling. Slow down to single drops near the end.','Stop at the first lasting pink colour and record the burette reading.']);
+    heading('Observations');
+    table(['#','Burette reading (mL)','Flask colour'],T.rows.map((r,i)=>[String(i+1),r.vol.toFixed(2),r.col]),[16,80,78]);
+    if(T.pts.length>1){ heading('Titration curve (pH meter)'); pdfChart(T.pts); }
+    heading('Calculation');
+    bullets(['Volume of acid taken, V1 = 25.0 mL','Concentration of NaOH, M2 = 0.100 mol/L','Volume of NaOH at the endpoint, V2 = '+ev.toFixed(2)+' mL (lowest recorded reading after the colour change)','M1 = (M2 x V2) / V1 = (0.100 x '+ev.toFixed(2)+') / 25.0 = '+m1.toFixed(4)+' mol/L']);
+    heading('Result'); para('The concentration of the hydrochloric acid solution is '+m1.toFixed(3)+' mol/L.');
+    heading('Precautions'); bullets(['Rinse the burette with the NaOH solution before filling and remove air bubbles from the tip.','Read the meniscus at eye level.','Add the base drop by drop near the endpoint and swirl the flask continuously.']);
+  },
+  f(){
+    if(!F.log.length) throw new Error('Flame test: test at least one salt first.');
+    beginExperiment('Experiment: Flame test');
+    heading('Aim'); para('To identify metal ions in salts from the colour they give to a Bunsen burner flame.');
+    heading('Apparatus and reagents'); bullets(['Bunsen burner, nichrome or platinum wire loop, watch glass','Chlorides of lithium, sodium, potassium, calcium, strontium, barium and copper','Concentrated hydrochloric acid for cleaning the loop']);
+    heading('Principle'); para('Heat gives electrons in a metal atom extra energy. When they fall back to lower energy levels they release the energy as light. Each metal emits its own set of wavelengths, so it gives a characteristic flame colour.');
+    heading('Procedure'); bullets(['Clean the loop with acid and heat it until it gives no colour.','Dip the loop in the salt and hold it in the edge of the non-luminous flame.','Note the flame colour, then clean the loop before the next salt.']);
+    heading('Observations');
+    table(['Salt','Metal','Flame colour'],F.log.map(id=>{ const s=SALTS.find(x=>x.id===id); return [s.salt,s.metal,{t:s.name,c:s.col}]; }),[40,50,84]);
+    if(F.myst.length){
+      heading('Mystery samples');
+      table(['Sample','Identified as','Attempts'],F.myst.map((m,i)=>[String(i+1),m.metal+' ('+m.salt+')',String(m.attempts)]),[30,104,40]);
+    }
+    heading('Result'); para('Flame colours observed: '+F.log.map(id=>{ const s=SALTS.find(x=>x.id===id); return s.metal+' - '+s.name.toLowerCase(); }).join('; ')+'.');
+    heading('Precautions'); bullets(['Wear safety goggles near the flame.','Clean the loop thoroughly between samples, because a trace of sodium colours the flame yellow.']);
+  },
+  i(){
+    const keys=Object.keys(I.results);
+    if(!keys.length) throw new Error('Indicators: add an indicator to at least one solution first.');
+    beginExperiment('Experiment: Indicators and pH');
+    heading('Aim'); para('To observe the colours of common indicators in solutions of different pH and to classify the solutions as acidic, neutral or basic.');
+    heading('Apparatus and reagents'); bullets(['Test tubes and droppers','Litmus, methyl orange, phenolphthalein and universal indicator','Dilute hydrochloric acid, lemon juice, vinegar, black coffee, pure water, baking soda solution, soap solution, milk of magnesia and dilute sodium hydroxide']);
+    heading('Principle'); para('Indicators are weak acids or bases whose colour changes with pH. Methyl orange changes from red to yellow between pH 3.1 and 4.4. Phenolphthalein changes from colourless to pink between pH 8.2 and 10. Litmus is red in acid and blue in base. Universal indicator gives a range of colours that can be matched to an approximate pH.');
+    heading('Procedure'); bullets(['Place a small volume of a solution in a clean test tube.','Add three drops of an indicator and note the colour.','Repeat with each indicator and each solution, and record the colours.']);
+    heading('Observations');
+    table(['Solution',...INDS.map(d=>d.name)],SOLS.map((s,i)=>[s.name,...INDS.map(d=>{ const r=I.results[i+'-'+d.id]; return r?{t:r.n,c:r.c}:'-'; })]),[58,29,29,29,29]);
+    const uni=SOLS.map((s,i)=>({s,r:I.results[i+'-uni']})).filter(x=>x.r);
+    if(uni.length){
+      heading('Result');
+      table(['Solution','pH (universal indicator)','Nature'],uni.map(x=>[x.s.name,x.s.ph.toFixed(1),classify(x.s.ph)]),[84,48,42]);
+    } else {
+      heading('Result'); para('Solutions were classified from the colours of the indicators used. Test with universal indicator to estimate the pH of each solution.');
+    }
+    heading('Precautions'); bullets(['Use a clean tube and dropper for each solution.','Add the same number of drops each time so the colours can be compared.']);
+  }
+};
+function finishReport(){
+  const d=P.doc;
+  ensure(30); P.y+=14;
+  d.setDrawColor(...MUTED); d.setLineWidth(.3);
+  d.line(MG,P.y,MG+60,P.y); d.line(PW-MG-60,P.y,PW-MG,P.y);
+  d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(...MUTED);
+  d.text('Student signature',MG,P.y+5); d.text('Faculty signature',PW-MG-60,P.y+5);
+  const n=d.getNumberOfPages();
+  for(let i=1;i<=n;i++){
+    d.setPage(i); d.setFont('helvetica','normal'); d.setFontSize(8); d.setTextColor(...MUTED);
+    d.text(asc('Virtual Chemistry Lab'+(D.name?' | '+D.name:'')),MG,PH-10);
+    d.text('Page '+i+' of '+n,PW-MG,PH-10,{align:'right'});
+  }
+}
+const slug=s=>asc(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+async function deliver(filename,el){
+  try{
+    P.doc.save(filename);
+    setStatus(el,'Report saved. Check your downloads.','ok');
+  }catch(err){
+    setStatus(el,'The report could not be saved. Try again.','no');
+  }
+}
+async function runReport(kind,el){
+  setStatus(el,'');
+  if(!(window.jspdf&&window.jspdf.jsPDF)){ setStatus(el,'The PDF tool did not load. Check your connection and reload the page.','no'); return; }
+  try{
+    const name=slug(D.name)||'student';
+    if(kind==='all'){
+      startReport('Virtual Chemistry Lab: Full Report');
+      let done=0; const problems=[];
+      ['t','f','i'].forEach(k=>{ try{ SEC[k](); done++; }catch(e){ problems.push(e.message); } });
+      if(!done) throw new Error('Run at least one experiment and record your results first.');
+      finishReport();
+      await deliver('chemistry-lab-full-report-'+name+'.pdf',el);
+    } else {
+      const titles={t:'Virtual Chemistry Lab Report',f:'Virtual Chemistry Lab Report',i:'Virtual Chemistry Lab Report'};
+      const files={t:'titration',f:'flame-test',i:'indicators'};
+      startReport(titles[kind]);
+      SEC[kind]();
+      finishReport();
+      await deliver('chemistry-lab-'+files[kind]+'-report-'+name+'.pdf',el);
+    }
+  }catch(e){ setStatus(el,e.message||'The report could not be created.','no'); }
+}
+$('#tPdf').addEventListener('click',()=>runReport('t',$('#tDl')));
+$('#fPdf').addEventListener('click',()=>runReport('f',$('#fDl')));
+$('#iPdf').addEventListener('click',()=>runReport('i',$('#iDl')));
+$('#hPdf').addEventListener('click',()=>runReport('all',$('#hDl')));
+
+/* ---------- Start ---------- */
+renderBanner();
+newUnknown();
+buildIndicatorUI(); resetTube(); renderMatrix(); renderLog();
+})();
+</script>
+</body>
+</html>
